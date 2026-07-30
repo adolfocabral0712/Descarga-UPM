@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Dashboard Descarga UPM</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: #0e1b2c;
+      --panel-2: #132338;
+      --border: #243750;
+      --text: #e7eef8;
+      --muted: #93a4bb;
+      --accent: #3fb8af;
+      --accent-2: #55c5ff;
+      --warning: #f4b860;
+      --danger: #ff7b7b;
+      --shadow: 0 12px 34px rgba(0,0,0,.25);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: radial-gradient(circle at top right, rgba(63,184,175,.12), transparent 28%), var(--bg);
+      color: var(--text);
+    }
+    .container { width: min(1480px, 96%); margin: 0 auto; padding: 24px 0 40px; }
+    header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 20px; margin-bottom: 20px;
+    }
+    h1 { margin: 0 0 6px; font-size: clamp(1.5rem, 3vw, 2.3rem); }
+    .subtitle, .updated { color: var(--muted); font-size: .92rem; }
+    .status {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px;
+      background: rgba(14,27,44,.86); color: var(--muted); white-space: nowrap;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warning); }
+    .dot.ok { background: var(--accent); box-shadow: 0 0 12px rgba(63,184,175,.8); }
+    .panel {
+      background: rgba(14,27,44,.92); border: 1px solid var(--border);
+      border-radius: 18px; box-shadow: var(--shadow);
+    }
+    .filters {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr 1fr auto;
+      gap: 12px; padding: 16px; margin-bottom: 18px; align-items: end;
+    }
+    label { display: block; color: var(--muted); font-size: .78rem; margin-bottom: 6px; }
+    select, input, button {
+      width: 100%; min-height: 42px; border-radius: 10px; border: 1px solid var(--border);
+      background: #0a1626; color: var(--text); padding: 9px 11px; font: inherit;
+    }
+    button { cursor: pointer; font-weight: 700; background: var(--accent); color: #05221f; border-color: transparent; padding-inline: 18px; }
+    button:hover { filter: brightness(1.08); }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+    .card { padding: 18px; min-height: 128px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .card-label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+    .card-value { margin-top: 12px; font-size: clamp(1.65rem, 3vw, 2.45rem); font-weight: 800; }
+    .card-note { margin-top: 7px; color: var(--muted); font-size: .82rem; }
+    .charts { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 18px; }
+    .chart-panel { padding: 18px; min-height: 390px; }
+    .section-title { margin: 0 0 14px; font-size: 1rem; }
+    .chart-wrap { position: relative; height: 320px; }
+    .table-panel { padding: 16px; }
+    .table-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .count { color: var(--muted); font-size: .85rem; }
+    .table-wrap { overflow-x: auto; max-height: 560px; border: 1px solid var(--border); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1180px; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid rgba(36,55,80,.72); text-align: center; font-size: .82rem; }
+    th { position: sticky; top: 0; background: #14243a; z-index: 2; color: #c8d5e6; }
+    tbody tr:nth-child(even) { background: rgba(19,35,56,.48); }
+    tbody tr.row-green { background: rgba(34,197,94,.18); }
+    tbody tr.row-yellow { background: rgba(245,158,11,.20); }
+    tbody tr.row-red { background: rgba(239,68,68,.20); }
+    tbody tr.row-green:hover { background: rgba(34,197,94,.28); }
+    tbody tr.row-yellow:hover { background: rgba(245,158,11,.30); }
+    tbody tr.row-red:hover { background: rgba(239,68,68,.30); }
+    .legend { display:flex; flex-wrap:wrap; gap:10px 16px; margin:0 0 12px; color:var(--muted); font-size:.8rem; }
+    .legend-item { display:inline-flex; align-items:center; gap:7px; }
+    .legend-dot { width:11px; height:11px; border-radius:3px; }
+    .legend-dot.green { background:rgba(34,197,94,.75); }
+    .legend-dot.yellow { background:rgba(245,158,11,.85); }
+    .legend-dot.red { background:rgba(239,68,68,.85); }
+    .empty, .error { padding: 34px; text-align: center; color: var(--muted); }
+    .error { color: var(--danger); }
+    @media (max-width: 980px) {
+      .filters { grid-template-columns: 1fr 1fr; }
+      .filters .wide { grid-column: 1 / -1; }
+      .cards { grid-template-columns: 1fr 1fr; }
+      .charts { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .container { width: 94%; padding-top: 16px; }
+      header { flex-direction: column; }
+      .filters, .cards { grid-template-columns: 1fr; }
+      .filters .wide { grid-column: auto; }
+      .card { min-height: 108px; }
+      .chart-panel { min-height: 340px; }
+      .chart-wrap { height: 280px; }
+    }
+  
+    .table-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    #clearChartSelection{padding:7px 11px;border-radius:8px;border:1px solid rgba(244,184,96,.55);background:rgba(244,184,96,.12);color:#f4b860;cursor:pointer;font-weight:600}
+    #clearChartSelection:hover{background:rgba(244,184,96,.2)}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <div>
+        <h1>Dashboard Descarga UPM</h1>
+        <div class="subtitle">Análisis por monte y por fecha de salida del monte</div>
+        <div id="updated" class="updated"></div>
+      </div>
+      <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Cargando datos…</span></div>
+    </header>
+
+    <section class="panel filters">
+      <div class="wide">
+        <label for="monteFilter">Monte / Origen</label>
+        <select id="monteFilter"><option value="">Todos los montes</option></select>
+      </div>
+      <div>
+        <label for="yearFilter">Año</label>
+        <select id="yearFilter"><option value="">Todos los años</option></select>
+      </div>
+      <div>
+        <label for="monthFilter">Mes</label>
+        <select id="monthFilter"><option value="">Todos los meses</option></select>
+      </div>
+      <div>
+        <label for="weekFilter">Sem.</label>
+        <select id="weekFilter"><option value="">Todas las sem.</option></select>
+      </div>
+      <div>
+        <label for="searchFilter">Remito o matrícula</label>
+        <input id="searchFilter" type="search" placeholder="Buscar…">
+      </div>
+      <div><button id="clearBtn" type="button">Limpiar</button></div>
+    </section>
+
+    <section class="cards">
+      <article class="panel card">
+        <div class="card-label">Promedio día</div>
+        <div id="avgDay" class="card-value">—</div>
+        <div class="card-note">Promedio de demora según filtros</div>
+      </article>
+      <article class="panel card">
+        <div class="card-label">VIAJES</div>
+        <div id="tripCount" class="card-value">0</div>
+      </article>
+      <article class="panel card">
+        <div class="card-label">Promedio Neto</div>
+        <div id="netAverage" class="card-value">0 t</div>
+      </article>
+    </section>
+
+    <section class="charts">
+      <article class="panel chart-panel">
+        <h2 class="section-title">Viajes y Promedio Día por fecha de salida del monte (salida descarga - salida carga)</h2>
+        <div class="chart-wrap"><canvas id="dateChart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="table-head">
+        <h2 class="section-title" style="margin:0">Detalle de registros</h2>
+        <div class="table-actions"><button id="clearChartSelection" type="button" style="display:none">Quitar selección de fecha</button><div id="rowCount" class="count">0 registros</div></div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot green"></span>Demora menor o igual al promedio</span>
+        <span class="legend-item"><span class="legend-dot yellow"></span>Hasta 1 hora por encima</span>
+        <span class="legend-item"><span class="legend-dot red"></span>Más de 1 hora por encima</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Remito</th><th>Monte</th><th>Matrícula</th><th>Producto</th>
+            <th>Salida Monte</th><th>Fecha Descarga</th><th>Demora</th>
+            <th>Promedio Día</th><th>Bruto</th><th>Tara</th><th>Neto</th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div id="message"></div>
+    </section>
+  </main>
+
+<script>
+  const JSON_URL = 'https://dl.dropbox.com/scl/fi/3uvxx4fi3inpdx9d4pzwd/DescargaUPM.json?rlkey=dz5xhlwbnzj3o02vc5f3pvddk&dl=1';
+  let allRows = [];
+  let dateChart;
+  let selectedChartDate = '';
+  let currentChartDates = [];
+
+  const $ = id => document.getElementById(id);
+  const nf0 = new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 });
+  const nf2 = new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function cleanText(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v).trim();
+    return /^(null|undefined|nan)$/i.test(s) ? '' : s;
+  }
+
+  function isValidNumber(v) {
+    return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+  }
+
+  function parseUYDateTime(value) {
+    const s = cleanText(value);
+    if (!s) return null;
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (!m) return null;
+    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function isoDate(d) {
+    if (!d) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function secondsFromDuration(value) {
+    const s = cleanText(value);
+    if (!s) return null;
+    const p = s.split(':').map(Number);
+    if (p.length < 2 || p.some(n => !Number.isFinite(n))) return null;
+    return p[0] * 3600 + p[1] * 60 + (p[2] || 0);
+  }
+
+  function durationFromSeconds(totalSeconds, includeSeconds = false) {
+    if (!Number.isFinite(totalSeconds)) return '—';
+    const total = Math.round(totalSeconds);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return includeSeconds
+      ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      : `${h}:${String(m).padStart(2,'0')}`;
+  }
+
+  function normalizeRow(r) {
+    return {
+      remito: r['Remito monte'],
+      bruto: r['Bruto'],
+      tara: r['Tara'],
+      neto: r['Neto'],
+      monte: cleanText(r['Origen']),
+      matricula: cleanText(r['Matricula']),
+      fechaDescarga: cleanText(r['Fecha Descarga']),
+      producto: r['Producto'],
+      fechaHoraDescarga: cleanText(r['Fecha y Hora Descarga']),
+      salidaMonte: cleanText(r['Salida Monte']),
+      salidaDate: parseUYDateTime(r['Salida Monte']),
+      demora: cleanText(r['Demora']),
+      demoraSeg: secondsFromDuration(r['Demora']),
+      fecha: cleanText(r['FECHA']),
+      promedioDia: cleanText(r['PROMEDIO DIA']),
+      promedioDiaSeg: secondsFromDuration(r['PROMEDIO DIA'])
+    };
+  }
+
+  function essentialValid(r) {
+    return r.monte && r.salidaDate && r.promedioDia && r.promedioDiaSeg !== null;
+  }
+
+  function getISOWeekInfo(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const weekYear = d.getFullYear();
+    const week1 = new Date(weekYear, 0, 4);
+    const week = 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    return { year: weekYear, week };
+  }
+
+  function weekKey(date) {
+    const info = getISOWeekInfo(date);
+    return `${info.year}-W${String(info.week).padStart(2, '0')}`;
+  }
+
+  function monthName(monthIndex) {
+    return new Intl.DateTimeFormat('es-UY', { month: 'long' })
+      .format(new Date(2026, monthIndex, 1))
+      .replace(/^./, c => c.toUpperCase());
+  }
+
+  function populateFilters() {
+    const montes = [...new Set(allRows.map(r => r.monte).filter(Boolean))].sort((a,b) => a.localeCompare(b,'es'));
+    $('monteFilter').innerHTML = '<option value="">Todos los montes</option>' + montes.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+
+    const today = new Date();
+    const currentWeek = weekKey(today);
+    const availableRows = allRows.filter(r => r.salidaDate && r.salidaDate <= today);
+    const years = [...new Set(availableRows.map(r => r.salidaDate.getFullYear()))].sort((a,b) => b-a);
+
+    $('yearFilter').innerHTML = '<option value="">Todos los años</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    const currentYearAvailable = years.includes(today.getFullYear());
+    $('yearFilter').value = currentYearAvailable ? String(today.getFullYear()) : (years[0] ? String(years[0]) : '');
+
+    updateMonthOptions();
+
+    const selectedYear = Number($('yearFilter').value);
+    if (selectedYear === today.getFullYear()) {
+      const currentMonthAvailable = [...$('monthFilter').options].some(o => o.value === String(today.getMonth() + 1));
+      if (currentMonthAvailable) $('monthFilter').value = String(today.getMonth() + 1);
+    }
+
+    updateWeekOptions();
+    if ([...$('weekFilter').options].some(o => o.value === currentWeek)) {
+      $('weekFilter').value = currentWeek;
+    } else if ($('weekFilter').options.length > 1) {
+      $('weekFilter').selectedIndex = 1;
+    }
+  }
+
+  function updateMonthOptions() {
+    const selectedYear = Number($('yearFilter').value);
+    const previous = $('monthFilter').value;
+    const months = [...new Set(allRows
+      .filter(r => r.salidaDate && (!selectedYear || r.salidaDate.getFullYear() === selectedYear))
+      .map(r => r.salidaDate.getMonth() + 1)
+    )].sort((a,b) => b-a);
+
+    $('monthFilter').innerHTML = '<option value="">Todos los meses</option>' + months.map(m => `<option value="${m}">${monthName(m-1)}</option>`).join('');
+    if (months.includes(Number(previous))) $('monthFilter').value = previous;
+  }
+
+  function updateWeekOptions() {
+    const selectedYear = Number($('yearFilter').value);
+    const selectedMonth = Number($('monthFilter').value);
+    const today = new Date();
+    const previous = $('weekFilter').value;
+    const weeks = new Map();
+
+    allRows.forEach(r => {
+      const d = r.salidaDate;
+      if (!d || d > today) return;
+      if (selectedYear && d.getFullYear() !== selectedYear) return;
+      if (selectedMonth && d.getMonth() + 1 !== selectedMonth) return;
+      const key = weekKey(d);
+      if (!weeks.has(key)) weeks.set(key, []);
+      weeks.get(key).push(d);
+    });
+
+    const options = [...weeks.entries()].map(([key, dates]) => {
+      const sorted = dates.sort((a,b) => a-b);
+      const first = sorted[0];
+      const last = sorted[sorted.length-1];
+      const info = getISOWeekInfo(first);
+      return { key, week: info.week, year: info.year, first, last };
+    }).sort((a,b) => b.first - a.first);
+
+    $('weekFilter').innerHTML = '<option value="">Todas las sem.</option>' + options.map(w => {
+      const desde = `${String(w.first.getDate()).padStart(2,'0')}/${String(w.first.getMonth()+1).padStart(2,'0')}`;
+      const hasta = `${String(w.last.getDate()).padStart(2,'0')}/${String(w.last.getMonth()+1).padStart(2,'0')}`;
+      return `<option value="${w.key}">Sem. ${w.week} · ${desde} al ${hasta}</option>`;
+    }).join('');
+
+    if (options.some(w => w.key === previous)) $('weekFilter').value = previous;
+  }
+
+  function filteredRows() {
+    const monte = $('monteFilter').value;
+    const year = Number($('yearFilter').value);
+    const month = Number($('monthFilter').value);
+    const week = $('weekFilter').value;
+    const search = $('searchFilter').value.trim().toLowerCase();
+
+    return allRows.filter(r => {
+      if (!essentialValid(r)) return false;
+      if (monte && r.monte !== monte) return false;
+      if (year && r.salidaDate.getFullYear() !== year) return false;
+      if (month && r.salidaDate.getMonth() + 1 !== month) return false;
+      if (week && weekKey(r.salidaDate) !== week) return false;
+      if (search) {
+        const haystack = `${r.remito ?? ''} ${r.matricula}`.toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    const rows = filteredRows();
+    const avgSeconds = rows.length ? rows.reduce((a,r) => a + r.promedioDiaSeg, 0) / rows.length : NaN;
+    const netKg = rows.reduce((a,r) => a + (isValidNumber(r.neto) ? Number(r.neto) : 0), 0);
+    const uniqueRows = uniqueRowsByRemito(rows);
+    const validNetRows = uniqueRows.filter(r => isValidNumber(r.neto));
+    const averageNetKg = validNetRows.length
+      ? validNetRows.reduce((sum, r) => sum + Number(r.neto), 0) / validNetRows.length
+      : 0;
+
+    $('avgDay').textContent = durationFromSeconds(avgSeconds);
+    $('tripCount').textContent = nf0.format(rows.length);
+    $('netAverage').textContent = `${nf2.format(averageNetKg / 1000)} t`;
+    $('rowCount').textContent = `${nf0.format(rows.length)} registros`;
+
+    renderCharts(rows);
+
+    const tableRows = selectedChartDate
+      ? rows.filter(r => isoDate(r.salidaDate) === selectedChartDate)
+      : rows;
+
+    const clearSelectionBtn = $('clearChartSelection');
+    if (selectedChartDate) {
+      const [y,m,d] = selectedChartDate.split('-');
+      clearSelectionBtn.textContent = `Quitar selección · ${d}/${m}/${y}`;
+      clearSelectionBtn.style.display = 'inline-flex';
+    } else {
+      clearSelectionBtn.style.display = 'none';
+    }
+
+    renderTable(tableRows);
+  }
+
+  function groupCount(rows, keyFn) {
+    const map = new Map();
+    rows.forEach(r => {
+      const key = keyFn(r);
+      if (!key) return;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }
+
+  function renderCharts(rows) {
+    const grouped = new Map();
+
+    rows.forEach(r => {
+      const key = isoDate(r.salidaDate);
+      if (!key) return;
+      if (!grouped.has(key)) grouped.set(key, { viajes: 0, sumaPromedio: 0, cantidadPromedio: 0 });
+      const item = grouped.get(key);
+      item.viajes += 1;
+      if (Number.isFinite(r.promedioDiaSeg)) {
+        item.sumaPromedio += r.promedioDiaSeg;
+        item.cantidadPromedio += 1;
+      }
+    });
+
+    const byDate = [...grouped.entries()]
+      .sort((a,b) => a[0].localeCompare(b[0]))
+      .map(([fecha, item]) => ({
+        fecha,
+        viajes: item.viajes,
+        promedioHoras: item.cantidadPromedio ? item.sumaPromedio / item.cantidadPromedio / 3600 : null,
+        promedioTexto: item.cantidadPromedio ? durationFromSeconds(item.sumaPromedio / item.cantidadPromedio) : '—'
+      }));
+
+    currentChartDates = byDate.map(x => x.fecha);
+
+    const valueLabelsPlugin = {
+      id: 'valueLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea } = chart;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.font = '600 11px Segoe UI, Arial, sans-serif';
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          if (meta.hidden) return;
+
+          meta.data.forEach((element, index) => {
+            const raw = dataset.data[index];
+            if (raw === null || raw === undefined || !Number.isFinite(Number(raw))) return;
+
+            let label;
+            if (dataset.type === 'line') {
+              label = byDate[index]?.promedioTexto || '—';
+              ctx.fillStyle = '#f4b860';
+            } else {
+              label = nf0.format(Number(raw));
+              ctx.fillStyle = '#e7eef8';
+            }
+
+            const y = Math.max(element.y - (dataset.type === 'line' ? 10 : 5), chartArea.top + 12);
+            ctx.fillText(label, element.x, y);
+          });
+        });
+        ctx.restore();
+      }
+    };
+
+    if (dateChart) dateChart.destroy();
+    dateChart = new Chart($('dateChart'), {
+      type: 'bar',
+      plugins: [valueLabelsPlugin],
+      data: {
+        labels: byDate.map(x => x.fecha.split('-').reverse().join('/')),
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Viajes',
+            data: byDate.map(x => x.viajes),
+            yAxisID: 'yViajes',
+            backgroundColor: byDate.map(x => x.fecha === selectedChartDate ? 'rgba(244,184,96,.82)' : 'rgba(63,184,175,.72)'),
+            borderColor: byDate.map(x => x.fecha === selectedChartDate ? '#f4b860' : '#3fb8af'),
+            borderWidth: 1,
+            borderRadius: 5,
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Promedio Día',
+            data: byDate.map(x => x.promedioHoras),
+            yAxisID: 'yPromedio',
+            borderColor: '#f4b860',
+            backgroundColor: '#f4b860',
+            pointBackgroundColor: '#f4b860',
+            pointBorderColor: '#f4b860',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            tension: .22,
+            fill: false,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 28, right: 8 } },
+        interaction: { mode: 'index', intersect: false },
+        onClick(event, elements, chart) {
+          const hits = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+          const barHit = hits.find(hit => hit.datasetIndex === 0);
+          if (!barHit) return;
+          const clickedDate = currentChartDates[barHit.index] || '';
+          selectedChartDate = selectedChartDate === clickedDate ? '' : clickedDate;
+          render();
+        },
+        onHover(event, elements, chart) {
+          const hits = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+          chart.canvas.style.cursor = hits.some(hit => hit.datasetIndex === 0) ? 'pointer' : 'default';
+        },
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: '#c8d5e6', usePointStyle: true, boxWidth: 10 }
+          },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                if (context.dataset.yAxisID === 'yPromedio') {
+                  return ` Promedio Día: ${byDate[context.dataIndex]?.promedioTexto || '—'}`;
+                }
+                return ` Viajes: ${nf0.format(context.raw)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#93a4bb', maxRotation: 45, minRotation: 0 },
+            grid: { color: 'rgba(147,164,187,.08)' }
+          },
+          yViajes: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Viajes', color: '#93a4bb' },
+            ticks: { color: '#93a4bb', precision: 0 },
+            grid: { color: 'rgba(147,164,187,.08)' }
+          },
+          yPromedio: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: false,
+            min: 3,
+            max: 16,
+            title: { display: true, text: 'Promedio Día', color: '#f4b860' },
+            ticks: {
+              color: '#f4b860',
+              callback(value) { return durationFromSeconds(Number(value) * 3600); }
+            },
+            grid: { drawOnChartArea: false }
+          }
+        }
+      }
+    });
+  }
+
+  function uniqueRowsByRemito(rows) {
+    const unique = new Map();
+
+    rows.forEach(r => {
+      const remito = cleanText(r.remito);
+      if (!remito) return;
+
+      const existing = unique.get(remito);
+      if (!existing || r.salidaDate > existing.salidaDate) {
+        unique.set(remito, r);
+      }
+    });
+
+    return [...unique.values()];
+  }
+
+  function delayRowClass(r) {
+    if (!Number.isFinite(r.demoraSeg) || !Number.isFinite(r.promedioDiaSeg)) return '';
+    const difference = r.demoraSeg - r.promedioDiaSeg;
+    if (difference <= 0) return 'row-green';
+    if (difference <= 3600) return 'row-yellow';
+    return 'row-red';
+  }
+
+  function renderTable(rows) {
+    const body = $('tableBody');
+    const message = $('message');
+    message.innerHTML = '';
+
+    const uniqueRows = uniqueRowsByRemito(rows);
+    const ordered = uniqueRows.sort((a,b) => b.salidaDate - a.salidaDate);
+    $('rowCount').textContent = `${nf0.format(ordered.length)} remitos únicos`;
+
+    if (!ordered.length) {
+      body.innerHTML = '';
+      message.innerHTML = '<div class="empty">No hay remitos válidos para los filtros seleccionados.</div>';
+      return;
+    }
+    body.innerHTML = ordered.slice(0, 1000).map(r => `<tr class="${delayRowClass(r)}">
+      <td>${display(r.remito)}</td><td>${escapeHtml(r.monte)}</td><td>${escapeHtml(r.matricula)}</td>
+      <td>${display(r.producto)}</td><td>${escapeHtml(r.salidaMonte)}</td><td>${escapeHtml(r.fechaHoraDescarga || r.fechaDescarga)}</td>
+      <td>${escapeHtml(r.demora)}</td><td>${escapeHtml(r.promedioDia)}</td>
+      <td>${formatNumber(r.bruto)}</td><td>${formatNumber(r.tara)}</td><td>${formatNumber(r.neto)}</td>
+    </tr>`).join('');
+    if (ordered.length > 1000) message.innerHTML = `<div class="empty">Se muestran los primeros 1.000 de ${nf0.format(ordered.length)} remitos únicos.</div>`;
+  }
+
+  function formatNumber(v) { return isValidNumber(v) ? nf0.format(Number(v)) : '—'; }
+  function display(v) { return cleanText(v) || '—'; }
+  function escapeHtml(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+  async function loadData() {
+    try {
+      const response = await fetch(`${JSON_URL}&t=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const json = await response.json();
+      const source = Array.isArray(json) ? json : json.datos;
+      if (!Array.isArray(source)) throw new Error('No se encontró el arreglo "datos" en el JSON.');
+
+      allRows = source.map(normalizeRow).filter(essentialValid);
+      $('updated').textContent = json.generado ? `Datos generados: ${json.generado}` : '';
+      $('statusText').textContent = 'Datos actualizados';
+      $('statusDot').classList.add('ok');
+      populateFilters();
+      render();
+    } catch (error) {
+      console.error(error);
+      $('statusText').textContent = 'Error de carga';
+      $('message').innerHTML = `<div class="error">No se pudo leer el JSON desde Dropbox.<br>${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  $('yearFilter').addEventListener('change', () => {
+    selectedChartDate = '';
+    $('monthFilter').value = '';
+    updateMonthOptions();
+    updateWeekOptions();
+    render();
+  });
+  $('monthFilter').addEventListener('change', () => {
+    selectedChartDate = '';
+    updateWeekOptions();
+    render();
+  });
+  ['monteFilter','weekFilter','searchFilter'].forEach(id => $(id).addEventListener('input', () => { selectedChartDate = ''; render(); }));
+  $('clearBtn').addEventListener('click', () => {
+    selectedChartDate = '';
+    $('monteFilter').value = '';
+    $('yearFilter').value = '';
+    $('monthFilter').value = '';
+    $('weekFilter').value = '';
+    updateMonthOptions();
+    updateWeekOptions();
+    $('searchFilter').value = '';
+    render();
+  });
+
+  $('clearChartSelection').addEventListener('click', () => {
+    selectedChartDate = '';
+    render();
+  });
+
+  loadData();
+</script>
+</body>
+</html>

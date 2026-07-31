@@ -198,7 +198,7 @@
   </main>
 
 <script>
-  const JSON_URL = 'https://dl.dropbox.com/scl/fi/3uvxx4fi3inpdx9d4pzwd/DescargaUPM.json?rlkey=dz5xhlwbnzj3o02vc5f3pvddk&dl=1';
+  const JSON_URL = '/api/datos';
   let allRows = [];
   let dateChart;
   let downloads30Chart;
@@ -754,7 +754,7 @@
 
   async function loadData() {
     try {
-      const response = await fetch(`${JSON_URL}&t=${Date.now()}`, { cache: 'no-store' });
+      const response = await fetch(`${JSON_URL}?t=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const json = await response.json();
       const source = Array.isArray(json) ? json : json.datos;

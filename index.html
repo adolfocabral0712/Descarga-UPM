@@ -188,12 +188,20 @@
       </div>
       <div id="message"></div>
     </section>
+
+    <section class="charts" style="margin-top:18px">
+      <article class="panel chart-panel">
+        <h2 class="section-title">Descargas por día · últimos 30 días</h2>
+        <div class="chart-wrap"><canvas id="downloads30Chart"></canvas></div>
+      </article>
+    </section>
   </main>
 
 <script>
   const JSON_URL = 'https://dl.dropbox.com/scl/fi/3uvxx4fi3inpdx9d4pzwd/DescargaUPM.json?rlkey=dz5xhlwbnzj3o02vc5f3pvddk&dl=1';
   let allRows = [];
   let dateChart;
+  let downloads30Chart;
   let selectedChartDate = '';
   let currentChartDates = [];
 
@@ -256,6 +264,7 @@
       monte: cleanText(r['Origen']),
       matricula: cleanText(r['Matricula']),
       fechaDescarga: cleanText(r['Fecha Descarga']),
+      descargaDate: parseUYDateTime(r['Fecha Descarga']),
       producto: r['Producto'],
       fechaHoraDescarga: cleanText(r['Fecha y Hora Descarga']),
       salidaMonte: cleanText(r['Salida Monte']),
@@ -593,6 +602,105 @@
     });
   }
 
+  function renderDownloads30Chart() {
+    const valid = allRows.filter(r => r.descargaDate instanceof Date && !Number.isNaN(r.descargaDate.getTime()));
+
+    if (!valid.length) {
+      if (downloads30Chart) downloads30Chart.destroy();
+      return;
+    }
+
+    const maxDate = new Date(Math.max(...valid.map(r => r.descargaDate.getTime())));
+    maxDate.setHours(0, 0, 0, 0);
+    const startDate = new Date(maxDate);
+    startDate.setDate(startDate.getDate() - 29);
+
+    const counts = new Map();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      counts.set(isoDate(d), new Set());
+    }
+
+    valid.forEach(r => {
+      const d = new Date(r.descargaDate);
+      d.setHours(0, 0, 0, 0);
+      const key = isoDate(d);
+      if (!counts.has(key)) return;
+      const remito = cleanText(r.remito);
+      if (remito) counts.get(key).add(remito);
+    });
+
+    const data = [...counts.entries()].map(([fecha, remitos]) => ({
+      fecha,
+      cantidad: remitos.size
+    }));
+
+    const labelsPlugin = {
+      id: 'downloadLabels30',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea } = chart;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.font = '600 11px Segoe UI, Arial, sans-serif';
+        ctx.fillStyle = '#e7eef8';
+        chart.getDatasetMeta(0).data.forEach((bar, index) => {
+          const value = Number(chart.data.datasets[0].data[index]);
+          if (!Number.isFinite(value)) return;
+          ctx.fillText(nf0.format(value), bar.x, Math.max(bar.y - 5, chartArea.top + 12));
+        });
+        ctx.restore();
+      }
+    };
+
+    if (downloads30Chart) downloads30Chart.destroy();
+    downloads30Chart = new Chart($('downloads30Chart'), {
+      type: 'bar',
+      plugins: [labelsPlugin],
+      data: {
+        labels: data.map(x => x.fecha.split('-').reverse().slice(0, 2).join('/')),
+        datasets: [{
+          label: 'Descargas',
+          data: data.map(x => x.cantidad),
+          backgroundColor: 'rgba(63,184,175,.72)',
+          borderColor: '#3fb8af',
+          borderWidth: 1,
+          borderRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 25 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title(items) {
+                const fecha = data[items[0].dataIndex]?.fecha || '';
+                return fecha.split('-').reverse().join('/');
+              },
+              label(context) { return ` Descargas: ${nf0.format(context.raw)}`; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#93a4bb', maxRotation: 45, minRotation: 45 },
+            grid: { color: 'rgba(147,164,187,.06)' }
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Descargas', color: '#93a4bb' },
+            ticks: { color: '#93a4bb', precision: 0 },
+            grid: { color: 'rgba(147,164,187,.08)' }
+          }
+        }
+      }
+    });
+  }
+
   function uniqueRowsByRemito(rows) {
     const unique = new Map();
 
@@ -657,6 +765,7 @@
       $('statusText').textContent = 'Datos actualizados';
       $('statusDot').classList.add('ok');
       populateFilters();
+      renderDownloads30Chart();
       render();
     } catch (error) {
       console.error(error);

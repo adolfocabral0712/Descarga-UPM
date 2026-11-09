@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="light">
   <title>Dashboard Descarga UPM</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #07111f;
-      --panel: #0e1b2c;
-      --panel-2: #132338;
-      --border: #243750;
-      --text: #e7eef8;
-      --muted: #93a4bb;
-      --accent: #3fb8af;
-      --accent-2: #55c5ff;
-      --warning: #f4b860;
-      --danger: #ff7b7b;
-      --shadow: 0 12px 34px rgba(0,0,0,.25);
+      --bg: #F4F3F1;
+      --panel: #FFFFFF;
+      --panel-2: #F4F3F1;
+      --border: #DEDCD8;
+      --text: #1F1F1F;
+      --muted: #6B6B6B;
+      --accent: #C65312;
+      --accent-2: #E86F18;
+      --warning: #FFB86B;
+      --danger: #B42318;
+      --shadow: 0 10px 28px rgba(31,31,31,.08);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Inter, Segoe UI, Arial, sans-serif;
-      background: radial-gradient(circle at top right, rgba(63,184,175,.12), transparent 28%), var(--bg);
+      background: radial-gradient(circle at top right, rgba(255,184,107,.20), transparent 30%), var(--bg);
       color: var(--text);
     }
     .container { width: min(1480px, 96%); margin: 0 auto; padding: 24px 0 40px; }
@@ -37,12 +37,12 @@
     .status {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px;
-      background: rgba(14,27,44,.86); color: var(--muted); white-space: nowrap;
+      background: rgba(255,255,255,.96); color: var(--muted); white-space: nowrap;
     }
     .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warning); }
-    .dot.ok { background: var(--accent); box-shadow: 0 0 12px rgba(63,184,175,.8); }
+    .dot.ok { background: var(--accent); box-shadow: 0 0 12px rgba(198,83,18,.45); }
     .panel {
-      background: rgba(14,27,44,.92); border: 1px solid var(--border);
+      background: rgba(255,255,255,.98); border: 1px solid var(--border);
       border-radius: 18px; box-shadow: var(--shadow);
     }
     .filters {
@@ -52,9 +52,9 @@
     label { display: block; color: var(--muted); font-size: .78rem; margin-bottom: 6px; }
     select, input, button {
       width: 100%; min-height: 42px; border-radius: 10px; border: 1px solid var(--border);
-      background: #0a1626; color: var(--text); padding: 9px 11px; font: inherit;
+      background: #FFFFFF; color: var(--text); padding: 9px 11px; font: inherit;
     }
-    button { cursor: pointer; font-weight: 700; background: var(--accent); color: #05221f; border-color: transparent; padding-inline: 18px; }
+    button { cursor: pointer; font-weight: 700; background: var(--accent); color: #FFFFFF; border-color: transparent; padding-inline: 18px; }
     button:hover { filter: brightness(1.08); }
     .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
     .card { padding: 18px; min-height: 128px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -70,9 +70,9 @@
     .count { color: var(--muted); font-size: .85rem; }
     .table-wrap { overflow-x: auto; max-height: 560px; border: 1px solid var(--border); border-radius: 12px; }
     table { width: 100%; border-collapse: collapse; min-width: 1180px; }
-    th, td { padding: 10px 9px; border-bottom: 1px solid rgba(36,55,80,.72); text-align: center; font-size: .82rem; }
-    th { position: sticky; top: 0; background: #14243a; z-index: 2; color: #c8d5e6; }
-    tbody tr:nth-child(even) { background: rgba(19,35,56,.48); }
+    th, td { padding: 10px 9px; border-bottom: 1px solid rgba(107,107,107,.18); text-align: center; font-size: .82rem; }
+    th { position: sticky; top: 0; background: #F4F3F1; z-index: 2; color: #1F1F1F; }
+    tbody tr:nth-child(even) { background: rgba(244,243,241,.72); }
     tbody tr.row-green { background: rgba(34,197,94,.18); }
     tbody tr.row-yellow { background: rgba(245,158,11,.20); }
     tbody tr.row-red { background: rgba(239,68,68,.20); }
@@ -102,10 +102,10 @@
       .chart-panel { min-height: 340px; }
       .chart-wrap { height: 280px; }
     }
-  
+
     .table-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    #clearChartSelection{padding:7px 11px;border-radius:8px;border:1px solid rgba(244,184,96,.55);background:rgba(244,184,96,.12);color:#f4b860;cursor:pointer;font-weight:600}
-    #clearChartSelection:hover{background:rgba(244,184,96,.2)}
+    #clearChartSelection{padding:7px 11px;border-radius:8px;border:1px solid rgba(198,83,18,.45);background:rgba(232,111,24,.10);color:#E86F18;cursor:pointer;font-weight:600}
+    #clearChartSelection:hover{background:rgba(232,111,24,.18)}
   </style>
 </head>
 <body>
@@ -488,10 +488,10 @@
             let label;
             if (dataset.type === 'line') {
               label = byDate[index]?.promedioTexto || '—';
-              ctx.fillStyle = '#f4b860';
+              ctx.fillStyle = '#E86F18';
             } else {
               label = nf0.format(Number(raw));
-              ctx.fillStyle = '#e7eef8';
+              ctx.fillStyle = '#1F1F1F';
             }
 
             const y = Math.max(element.y - (dataset.type === 'line' ? 10 : 5), chartArea.top + 12);
@@ -514,8 +514,8 @@
             label: 'Viajes',
             data: byDate.map(x => x.viajes),
             yAxisID: 'yViajes',
-            backgroundColor: byDate.map(x => x.fecha === selectedChartDate ? 'rgba(244,184,96,.82)' : 'rgba(63,184,175,.72)'),
-            borderColor: byDate.map(x => x.fecha === selectedChartDate ? '#f4b860' : '#3fb8af'),
+            backgroundColor: byDate.map(x => x.fecha === selectedChartDate ? 'rgba(232,111,24,.88)' : 'rgba(198,83,18,.72)'),
+            borderColor: byDate.map(x => x.fecha === selectedChartDate ? '#E86F18' : '#C65312'),
             borderWidth: 1,
             borderRadius: 5,
             order: 2
@@ -525,10 +525,10 @@
             label: 'Promedio Día',
             data: byDate.map(x => x.promedioHoras),
             yAxisID: 'yPromedio',
-            borderColor: '#f4b860',
-            backgroundColor: '#f4b860',
-            pointBackgroundColor: '#f4b860',
-            pointBorderColor: '#f4b860',
+            borderColor: '#E86F18',
+            backgroundColor: '#E86F18',
+            pointBackgroundColor: '#E86F18',
+            pointBorderColor: '#E86F18',
             pointRadius: 4,
             pointHoverRadius: 6,
             borderWidth: 2,
@@ -558,7 +558,7 @@
         plugins: {
           legend: {
             display: true,
-            labels: { color: '#c8d5e6', usePointStyle: true, boxWidth: 10 }
+            labels: { color: '#1F1F1F', usePointStyle: true, boxWidth: 10 }
           },
           tooltip: {
             callbacks: {
@@ -573,16 +573,16 @@
         },
         scales: {
           x: {
-            ticks: { color: '#93a4bb', maxRotation: 45, minRotation: 0 },
-            grid: { color: 'rgba(147,164,187,.08)' }
+            ticks: { color: '#6B6B6B', maxRotation: 45, minRotation: 0 },
+            grid: { color: 'rgba(107,107,107,.16)' }
           },
           yViajes: {
             type: 'linear',
             position: 'left',
             beginAtZero: true,
-            title: { display: true, text: 'Viajes', color: '#93a4bb' },
-            ticks: { color: '#93a4bb', precision: 0 },
-            grid: { color: 'rgba(147,164,187,.08)' }
+            title: { display: true, text: 'Viajes', color: '#6B6B6B' },
+            ticks: { color: '#6B6B6B', precision: 0 },
+            grid: { color: 'rgba(107,107,107,.16)' }
           },
           yPromedio: {
             type: 'linear',
@@ -590,9 +590,9 @@
             beginAtZero: false,
             min: 3,
             max: 16,
-            title: { display: true, text: 'Promedio Día', color: '#f4b860' },
+            title: { display: true, text: 'Promedio Día', color: '#E86F18' },
             ticks: {
-              color: '#f4b860',
+              color: '#E86F18',
               callback(value) { return durationFromSeconds(Number(value) * 3600); }
             },
             grid: { drawOnChartArea: false }
@@ -644,7 +644,7 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.font = '600 11px Segoe UI, Arial, sans-serif';
-        ctx.fillStyle = '#e7eef8';
+        ctx.fillStyle = '#1F1F1F';
         chart.getDatasetMeta(0).data.forEach((bar, index) => {
           const value = Number(chart.data.datasets[0].data[index]);
           if (!Number.isFinite(value)) return;
@@ -663,8 +663,8 @@
         datasets: [{
           label: 'Descargas',
           data: data.map(x => x.cantidad),
-          backgroundColor: 'rgba(63,184,175,.72)',
-          borderColor: '#3fb8af',
+          backgroundColor: 'rgba(198,83,18,.72)',
+          borderColor: '#C65312',
           borderWidth: 1,
           borderRadius: 5
         }]
@@ -687,14 +687,14 @@
         },
         scales: {
           x: {
-            ticks: { color: '#93a4bb', maxRotation: 45, minRotation: 45 },
-            grid: { color: 'rgba(147,164,187,.06)' }
+            ticks: { color: '#6B6B6B', maxRotation: 45, minRotation: 45 },
+            grid: { color: 'rgba(107,107,107,.12)' }
           },
           y: {
             beginAtZero: true,
-            title: { display: true, text: 'Descargas', color: '#93a4bb' },
-            ticks: { color: '#93a4bb', precision: 0 },
-            grid: { color: 'rgba(147,164,187,.08)' }
+            title: { display: true, text: 'Descargas', color: '#6B6B6B' },
+            ticks: { color: '#6B6B6B', precision: 0 },
+            grid: { color: 'rgba(107,107,107,.16)' }
           }
         }
       }
